@@ -11,22 +11,22 @@
     <table>
         <tbody>
             <tr>
-                <th>ID </th>
-                <th>Time</th>
+                <th>Request ID </th>
+                <th>Timestamp</th>
                 <th>Visualize</th>
                 <th>Context</th>
-                <!-- <th>Inputs</th> -->
                 <th>Results</th>
                 <th>Errors</th>
+                <th>Latency</th>
             </tr>
             <tr v-for="req in requests">
-                <td>{{ req.id }}</td>
+                <td>{{ req.reqId }}</td>
                 <td>{{ req.time }} </td>
                 <td> <a v-bind:href="req.href" @click="Visualize(req.id)"> Visualize </a> </td>
                 <td> {{ JSON.stringify(req.context) }} </td>
-                <!-- <td> {{ JSON.stringify(req.inputs) }} </td> -->
                 <td> {{ JSON.stringify(req.results) }} </td>
                 <td> {{ JSON.stringify(req.errors) }} </td>
+                <td> {{ JSON.stringify(req.latency) }} </td>
             </tr>
         </tbody>
     </table>
@@ -443,11 +443,24 @@
           for (var id in data) {
             var dt = {};
             var href = '#' + id;
-            Object.assign(dt, data[id], { id, href });
+          
+            var latency = {};
+            var value = data[id];
+            var endTime = value.endTime;
+            var startTime = value.startTime;
+            for (var key in endTime) {
+                var endAt = moment(endTime[key]);
+                var startAt = moment(startTime[key]);
+                var duration = endAt.diff(startAt);
+                latency[key] = duration;
+            }
+
+            Object.assign(dt, value, { id, href, latency });
             this.requests.push(dt);
           }
+          
         }).catch(error => {
-          console.error('Did not get tracking data.')
+          console.error('Did not get tracking data.', error);
         })
       },
       Visualize(id) {
@@ -536,5 +549,7 @@
     font-weight: bold;
   }
   </style>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.26.0/moment.min.js">
+  </script>
 </body>  
 </html>

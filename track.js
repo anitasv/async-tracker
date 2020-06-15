@@ -144,17 +144,23 @@ MultiTracker.prototype.controller = function() {
     };
 };
 
-MultiTracker.prototype.newTracker = function(id, context) {
+function getTimeUTC() {
+    return new Date().toISOString()
+}
+
+MultiTracker.prototype.newTracker = function(reqId, context) {
     var wf = {};
-    id = id || uuid.v4();
-    console.log(id);
+    var id = uuid.v4();
     this.workflows[id] = wf;
 
-    wf.time = new Date().toISOString();
+    wf.reqId = reqId;
+    wf.time = getTimeUTC();
     wf.context = context;
     wf.inputs = {};
     wf.results = {};
     wf.errors = {};
+    wf.startTime = {}
+    wf.endTime = {}
 
     function simpleReport(key, tag) {
         for (var i = 0; i < wf.graph.nodes.length; i++) {
@@ -172,14 +178,17 @@ MultiTracker.prototype.newTracker = function(id, context) {
         reportStart: function(key, inputs) {
             simpleReport(key, "start");
             wf.inputs[key] = inputs;
+            wf.startTime[key] = getTimeUTC();
         },
         reportReturn: function(key, result) {
             simpleReport(key, "return");
             wf.results[key] = result;
+            wf.endTime[key] = getTimeUTC();
         },
         reportError: function(key, error) {
             simpleReport(key, "error");
             wf.errors[key] = error.message;
+            wf.endTime[key] = getTimeUTC();
         }
     };
 }
@@ -198,20 +207,26 @@ function main() {
 
         autoTrack({
             task1: function(callback) {
-                callback(null, 1);
+                setTimeout(() => {
+                    callback(null, 1);
+                }, 100);
             },
             task2: function(task1, callback) {
                 if  (task1 == 1) {
-                    return callback(null, 2);
+                    setTimeout(() => {
+                        callback(null, 2);
+                    }, 200);
                 } else {
                     return callback(new Error("Invalid inputs"));
                 }
             },
             task3: function(task1, task2, callback) {
-                if (task1 == 1 && task2 == 3) {
-                    return callback(null, 3);
+                if (task1 == 1 && task2 == 2 && Math.random() < .6) {
+                    setTimeout(() => {
+                        callback(null, 3);
+                    }, 300);
                 } else {
-                    return callback(new Error("Invalid inputs"));
+                    return callback(new Error("Invalid inputs or sporadic error"));
                 }
             },
             task4: function(callback) {
